@@ -23,7 +23,6 @@ services:
   - type: web
     name: minority-client
     runtime: static
-    plan: free
     rootDir: .
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
