@@ -2,9 +2,9 @@ import { scryptSync, timingSafeEqual, randomBytes } from "node:crypto";
 import type { Store } from "./store.js";
 import { newId } from "./store.js";
 
-const MIN_PASSWORD = 10;
+const MIN_PASSWORD = 8;
 
-/** Policy: 10+ chars with at least one letter and one digit. */
+/** Policy: 8+ chars with at least one letter and one digit. */
 export function validPassword(pw: unknown): pw is string {
   return (
     typeof pw === "string" &&

@@ -53,7 +53,7 @@ export function AccountPanel({ onName }: { onName: (n: string) => void }) {
   }
 
   async function register() {
-    if (user.trim().length < 3 || pw.length < 10) return setError("name 3+ chars, password 10+ with a letter + number");
+    if (user.trim().length < 3 || pw.length < 8) return setError("name 3+ chars, password 8+ with a letter + number");
     if (!captcha || !captchaAns.trim()) {
       await fetchCaptcha();
       return setError("solve the captcha first");
@@ -141,7 +141,7 @@ export function AccountPanel({ onName }: { onName: (n: string) => void }) {
           <div className="flex gap-2">
             <input value={user} onChange={(e) => setUser(e.target.value)} maxLength={24} placeholder="name"
               className="flex-1 border-[3px] border-white bg-black px-2 py-2 text-sm font-bold text-white outline-none" />
-            <input value={pw} onChange={(e) => setPw(e.target.value)} type="password" maxLength={128} placeholder="password: 10+ letter+number"
+            <input value={pw} onChange={(e) => setPw(e.target.value)} type="password" maxLength={128} placeholder="password: 8+ letter+number"
               className="flex-1 border-[3px] border-white bg-black px-2 py-2 text-sm font-bold text-white outline-none" />
           </div>
           <input value={email} onChange={(e) => setEmail(e.target.value)} maxLength={254} placeholder="email (optional, for recovery)"

@@ -301,7 +301,7 @@ io.on("connection", (socket: Socket) => {
       const { name, password, email, captchaId, captchaAnswer } = z
         .object({
           name: NameSchema,
-          password: z.string().min(10).max(128),
+          password: z.string().min(8).max(128),
           email: z.string().max(254).optional(),
           captchaId: z.string().max(128),
           captchaAnswer: z.string().max(16),

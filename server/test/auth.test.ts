@@ -25,12 +25,12 @@ describe("password auth", () => {
     expect(verifyPassword("x", "garbage")).toBe(false);
   });
 
-  it("password policy: 10+ chars with letter + digit", () => {
+  it("password policy: 8+ chars with letter + digit", () => {
     const store = new Store(":memory:");
     expect(() => registerUser(store, "LongEnough", "alllettershere")).toThrow(/weak-password/);
-    expect(() => registerUser(store, "DigitsOnly", "12345678901")).toThrow(/weak-password/);
-    expect(() => registerUser(store, "Fine1", "pass1234")).toThrow(/weak-password/);
-    expect(() => registerUser(store, "Good2", "pass123456")).not.toThrow();
+    expect(() => registerUser(store, "DigitsOnly", "12345678")).toThrow(/weak-password/);
+    expect(() => registerUser(store, "Fine1", "pass123")).toThrow(/weak-password/);
+    expect(() => registerUser(store, "Good2", "pass1234")).not.toThrow();
   });
 
   it("email optional, validated, unique", () => {
