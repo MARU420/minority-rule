@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Check, Copy, Play } from "lucide-react";
 import { emit, ensureSession, getSocket } from "../net/server";
+import { sfx } from "../fx/sound";
 import type { PublicRoom } from "../net/types";
 
 export function Lobby({ initialName = "", onStart }: { initialName?: string; onStart: (code: string, sessionId: string) => void }) {
@@ -29,6 +30,7 @@ export function Lobby({ initialName = "", onStart }: { initialName?: string; onS
 
   async function create() {
     if (!name.trim()) return setError("enter-name");
+    sfx.click();
     setBusy(true);
     setError("");
     try {
@@ -48,6 +50,7 @@ export function Lobby({ initialName = "", onStart }: { initialName?: string; onS
 
   async function join() {
     if (!name.trim() || !code.trim()) return setError("enter-name-and-code");
+    sfx.click();
     setBusy(true);
     setError("");
     try {
@@ -66,15 +69,13 @@ export function Lobby({ initialName = "", onStart }: { initialName?: string; onS
 
   async function ready(v: boolean) {
     setError("");
+    sfx.click();
     getSocket().emit("READY_UP", { code, ready: v });
   }
 
   async function start() {
-    try {
-      getSocket().emit("START_MATCH", { code });
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    sfx.round();
+    getSocket().emit("START_MATCH", { code });
   }
 
   if (!room) {
@@ -106,7 +107,7 @@ export function Lobby({ initialName = "", onStart }: { initialName?: string; onS
     <div className="panel bg-white p-6 text-[#0A0A0A]">
       <div className="flex items-center justify-between">
         <div className="font-display text-xl">ROOM <span className="text-[#E10600]">{room.code}</span></div>
-        <button onClick={() => { void navigator.clipboard?.writeText(room.code); }} className="flex items-center gap-1 border-[3px] border-black px-2 py-1 text-xs font-black">
+        <button onClick={() => { sfx.click(); void navigator.clipboard?.writeText(room.code); }} className="flex items-center gap-1 border-[3px] border-black px-2 py-1 text-xs font-black">
           <Copy className="h-3 w-3" /> COPY
         </button>
       </div>

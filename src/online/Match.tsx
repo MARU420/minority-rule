@@ -210,10 +210,12 @@ export function Match({ code }: { code: string }) {
   }
   async function sendChat() {
     if (!draft.trim()) return;
+    sfx.click();
     getSocket().emit("CHAT_MESSAGE", { code, text: draft.trim().slice(0, 300) });
     setDraft("");
   }
   async function report() {
+    sfx.click();
     try {
       await emit("REPORT_CONTENT", { code, reason: "reported from match screen" });
       setError("report-sent");
@@ -230,7 +232,7 @@ export function Match({ code }: { code: string }) {
       <header className="flex flex-wrap items-center justify-between gap-2 border-b-4 border-black bg-[#0A0A0A] px-6 py-4 text-white">
         <h1 className="font-display text-2xl tracking-wide">MINORITY <span className="text-[#E10600]">RULE</span></h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => { const m = !muted; setM(m); setMuted(m); }} className="border-2 border-white px-2 py-1 text-white" title="sound">
+          <button onClick={() => { const m = !muted; setM(m); setMuted(m); sfx.click(); }} className="border-2 border-white px-2 py-1 text-white" title="sound">
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
           <div className="skew-tag flex items-center gap-1 bg-white px-3 py-1 text-[13px] font-black text-black">

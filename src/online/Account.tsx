@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { emit, getSocket } from "../net/server";
+import { sfx } from "../fx/sound";
 
 interface Profile {
   id: string;
@@ -19,6 +20,7 @@ export function AccountPanel({ onName }: { onName: (n: string) => void }) {
   const [busy, setBusy] = useState(false);
 
   async function refresh() {
+    sfx.click();
     try {
       const p = await emit<Profile>("MY_PROFILE", {});
       setProfile(p);
@@ -30,6 +32,7 @@ export function AccountPanel({ onName }: { onName: (n: string) => void }) {
 
   async function register() {
     if (user.trim().length < 3 || pw.length < 8) return setError("name 3+ chars, password 8+ chars");
+    sfx.click();
     setBusy(true);
     try {
       await emit("REGISTER", { name: user.trim(), password: pw });
@@ -45,6 +48,7 @@ export function AccountPanel({ onName }: { onName: (n: string) => void }) {
 
   async function login() {
     if (!user.trim() || !pw) return setError("enter name + password");
+    sfx.click();
     setBusy(true);
     try {
       const r = await emit<{ displayName: string }>("LOGIN", { name: user.trim(), password: pw });

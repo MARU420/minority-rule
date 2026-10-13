@@ -7,6 +7,13 @@ import { AccountPanel } from "./online/Account";
 import { MenuBackdrop } from "./components/MenuBackdrop";
 import { isMuted, setMuted, sfx, startBgm, stopBgm } from "./fx/sound";
 
+function tap(fn: () => void) {
+  return () => {
+    sfx.click();
+    fn();
+  };
+}
+
 export interface PastMatch {
   date: number;
   rank: number;
@@ -42,7 +49,7 @@ function HowTo({ onClose }: { onClose: () => void }) {
           </div>
         ))}
       </div>
-      <button onClick={onClose} className="mt-4 w-full border-4 border-black bg-[#0A0A0A] p-3 font-display text-sm text-white">GOT IT</button>
+      <button onClick={tap(onClose)} className="mt-4 w-full border-4 border-black bg-[#0A0A0A] p-3 font-display text-sm text-white">GOT IT</button>
     </div>
   );
 }
@@ -74,7 +81,7 @@ export default function App() {
         <div className="relative">
           <Practice />
           <div className="mx-auto mt-4 max-w-5xl">
-            <button onClick={() => setMode("menu")} className="text-xs tracking-widest text-neutral-500">← MAIN MENU</button>
+            <button onClick={tap(() => setMode("menu"))} className="text-xs tracking-widest text-neutral-500">← MAIN MENU</button>
           </div>
         </div>
       </div>
@@ -93,13 +100,13 @@ export default function App() {
               One question per player. Vote in secret. Stand alone, take the pot.
             </p>
             <div className="mx-auto mt-6 grid max-w-2xl gap-3 sm:grid-cols-2">
-              <button onClick={() => setMode("online")}
+              <button onClick={tap(() => setMode("online"))}
                 className="group border-4 border-white bg-[#E10600] p-5 text-left text-white shadow-[6px_6px_0_#fff] transition-transform hover:-translate-y-0.5 active:scale-[0.98]">
                 <Globe className="h-6 w-6" />
                 <div className="mt-2 font-display text-xl">ONLINE MATCH <ChevronRight className="inline h-5 w-5 transition-transform group-hover:translate-x-1" /></div>
                 <div className="text-xs opacity-80">Real players + bots · server-ruled chips</div>
               </button>
-              <button onClick={() => setMode("practice")}
+              <button onClick={tap(() => setMode("practice"))}
                 className="group border-4 border-white bg-white p-5 text-left text-black shadow-[6px_6px_0_#E10600] transition-transform hover:-translate-y-0.5 active:scale-[0.98]">
                 <Bot className="h-6 w-6" />
                 <div className="mt-2 font-display text-xl">PRACTICE <ChevronRight className="inline h-5 w-5 transition-transform group-hover:translate-x-1" /></div>
@@ -107,10 +114,10 @@ export default function App() {
               </button>
             </div>
             <div className="mx-auto mt-3 flex max-w-2xl gap-3">
-              <button onClick={() => setShowHow(true)} className="flex flex-1 items-center justify-center gap-2 border-[3px] border-neutral-600 p-3 font-display text-sm text-neutral-200 hover:border-white">
+              <button onClick={tap(() => setShowHow(true))} className="flex flex-1 items-center justify-center gap-2 border-[3px] border-neutral-600 p-3 font-display text-sm text-neutral-200 hover:border-white">
                 <BookOpen className="h-4 w-4" /> HOW TO PLAY
               </button>
-              <button onClick={() => setShowSettings((s) => !s)} className="flex flex-1 items-center justify-center gap-2 border-[3px] border-neutral-600 p-3 font-display text-sm text-neutral-200 hover:border-white">
+              <button onClick={tap(() => setShowSettings((s) => !s))} className="flex flex-1 items-center justify-center gap-2 border-[3px] border-neutral-600 p-3 font-display text-sm text-neutral-200 hover:border-white">
                 <Settings2 className="h-4 w-4" /> SETTINGS
               </button>
             </div>
@@ -152,7 +159,7 @@ export default function App() {
         )}
         {mode === "online" && playing && <Match code={code} />}
         {mode !== "menu" && (
-          <button onClick={() => { setMode("menu"); setPlaying(false); setShowHow(false); }} className="mt-4 text-xs tracking-widest text-neutral-500">← MAIN MENU</button>
+          <button onClick={tap(() => { setMode("menu"); setPlaying(false); setShowHow(false); })} className="mt-4 text-xs tracking-widest text-neutral-500">← MAIN MENU</button>
         )}
       </div>
     </div>

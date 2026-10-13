@@ -197,6 +197,7 @@ export default function App() {
       return;
     }
     if (phase === "reveal" && result && result.minority === null) {
+      sfx.click();
       const next = players.map((p) => {
         if (p.isYou) return { ...p, vote: null };
         return { ...p, vote: botVote(p, lastMinorityRef.current) };
@@ -211,9 +212,11 @@ export default function App() {
       return;
     }
     if (round >= TOTAL_ROUNDS) {
+      sfx.win();
       setPhase("gameover");
       return;
     }
+    sfx.round();
     setRound((r) => r + 1);
     startSubmit(players.map((p) => ({ ...p, vote: null })));
   }
