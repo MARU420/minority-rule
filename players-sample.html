@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minority Rule — Players Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#0A0A0A;color:#fff;font-family:Inter,system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px}
+.halftone{position:fixed;inset:0;pointer-events:none;opacity:.14;background-image:radial-gradient(#fff 1.2px,transparent 1.3px);background-size:14px 14px}
+.wrap{width:min(920px,100%)}
+h1{font-family:"Archivo Black";font-size:24px;letter-spacing:.04em;margin-bottom:4px} h1 span{color:#E10600}
+.sub{color:#999;font-size:13px;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+@media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
+.p{background:#fff;color:#0A0A0A;border:3px solid #000;box-shadow:5px 5px 0 #000;overflow:hidden}
+.face{height:110px;display:flex;align-items:center;justify-content:center;font-family:"Archivo Black";font-size:46px;position:relative;border-bottom:3px solid #000;background:#eee;background-image:radial-gradient(#000 1px,transparent 1.1px);background-size:10px 10px}
+.face svg{width:64px;height:64px}
+.num{position:absolute;top:6px;left:6px;background:#0A0A0A;color:#fff;font-size:11px;font-weight:900;padding:2px 8px;transform:skew(-8deg);border:2px solid #000}
+.meta{padding:8px 10px}
+.meta b{font-size:13px;display:block}
+.coins{font-size:12px;font-weight:900;margin-top:2px}
+.vote{margin-top:8px;text-align:center;font-family:"Archivo Black";font-size:14px;padding:7px;border:3px solid #000;letter-spacing:.1em}
+.hidden{background:#0A0A0A;color:#fff}
+.yes{background:#fff;color:#000}
+.no{background:#E10600;color:#fff}
+.dead{filter:grayscale(1);opacity:.55}
+.dead .vote{background:#666;color:#fff;text-decoration:line-through}
+.you{box-shadow:5px 5px 0 #E10600,5px 5px 0 8px #000}
+.caption{text-align:center;color:#666;font-size:12px;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="halftone"></div>
+<div class="wrap">
+<h1>PLAYERS <span>/ 10</span></h1>
+<p class="sub">You + 9 bots. Face-down = hidden vote. Red = majority pays. X = eliminated.</p>
+<div class="grid" id="g"></div>
+<p class="caption">STYLE: numbered ticket panels / silhouette SVG / no photo assets needed</p>
+</div>
+<script>
+const players=[
+ {n:"YOU",c:"+400",v:"NO",cls:"no",you:true,face:1},
+ {n:"BOT 01",c:"+400",v:"NO",cls:"no",face:2},
+ {n:"BOT 02",c:"-300",v:"YES",cls:"yes",face:3},
+ {n:"BOT 03",c:"?",v:"● ● ●",cls:"hidden",face:4},
+ {n:"BOT 04",c:"+400",v:"NO",cls:"no",face:1},
+ {n:"BOT 05",c:"-300",v:"YES",cls:"yes",face:2},
+ {n:"BOT 06",c:"?",v:"● ● ●",cls:"hidden",face:3},
+ {n:"BOT 07",c:"-600",v:"✕ OUT",cls:"no dead",face:4},
+ {n:"BOT 08",c:"?",v:"● ● ●",cls:"hidden",face:1},
+ {n:"BOT 09",c:"+100",v:"YES",cls:"yes",face:2},
+];
+const faces={
+1:'<svg viewBox="0 0 64 64"><circle cx="32" cy="24" r="12" fill="#0A0A0A"/><path d="M10 60c2-14 12-20 22-20s20 6 22 20z" fill="#0A0A0A"/></svg>',
+2:'<svg viewBox="0 0 64 64"><rect x="18" y="10" width="28" height="26" fill="#0A0A0A"/><path d="M12 60c2-14 12-20 20-20s18 6 20 20z" fill="#0A0A0A"/></svg>',
+3:'<svg viewBox="0 0 64 64"><circle cx="32" cy="24" r="12" fill="none" stroke="#0A0A0A" stroke-width="4"/><path d="M10 60c2-14 12-20 22-20s20 6 22 20z" fill="none" stroke="#0A0A0A" stroke-width="4"/></svg>',
+4:'<svg viewBox="0 0 64 64"><circle cx="32" cy="24" r="12" fill="#E10600"/><path d="M10 60c2-14 12-20 22-20s20 6 22 20z" fill="#0A0A0A"/></svg>'};
+document.getElementById('g').innerHTML=players.map((p,i)=>
+`<div class="p ${p.you?'you':''} ${p.cls.includes('dead')?'dead':''}">
+<div class="face"><span class="num">#${String(i).padStart(2,'0')}</span>${faces[p.face]}</div>
+<div class="meta"><b>${p.n}</b><div class="coins">${p.c}</div><div class="vote ${p.cls}">${p.v}</div></div>
+</div>`).join('');
+</script>
+</body>
+</html>

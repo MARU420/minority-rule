@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minority Rule — Style Sample</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0}
+  body{background:#0A0A0A;color:#fff;font-family:Inter,system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px}
+  .halftone{position:fixed;inset:0;pointer-events:none;opacity:.16;background-image:radial-gradient(#fff 1.2px,transparent 1.3px);background-size:14px 14px}
+  .card{background:#fff;color:#0A0A0A;width:min(860px,100%);border:4px solid #000;box-shadow:10px 10px 0 #E10600,10px 10px 0 13px #000;padding:0;overflow:hidden}
+  header{background:#0A0A0A;color:#fff;padding:18px 26px;display:flex;justify-content:space-between;align-items:center;border-bottom:4px solid #000}
+  header h1{font-family:"Archivo Black";font-size:26px;letter-spacing:.04em}
+  header h1 span{color:#E10600}
+  .round{background:#E10600;color:#fff;font-weight:900;font-size:13px;padding:6px 14px;transform:skew(-8deg);letter-spacing:.12em}
+  .sub{background:#fff;padding:14px 26px;border-bottom:3px solid #000;font-size:14px;display:flex;gap:10px;align-items:center}
+  .sub b{background:#0A0A0A;color:#fff;padding:2px 10px;transform:skew(-8deg);display:inline-block}
+  .votes{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:26px}
+  .vote{border:4px solid #000;padding:28px 10px;text-align:center;cursor:default;position:relative;background:#fff}
+  .vote h2{font-family:"Archivo Black";font-size:52px;line-height:1}
+  .vote p{font-size:13px;font-weight:700;margin-top:8px;letter-spacing:.15em}
+  .vote.yes h2{color:#0A0A0A}
+  .vote.no-winner{background:#0A0A0A;color:#fff;box-shadow:inset 0 0 0 3px #E10600}
+  .vote.no-winner h2{color:#E10600}
+  .vote .tag{position:absolute;top:-14px;left:50%;transform:translateX(-50%) skew(-8deg);background:#E10600;color:#fff;font-size:12px;font-weight:900;padding:3px 14px;letter-spacing:.15em;border:3px solid #000}
+  .board{margin:0 26px 8px;border:3px solid #000}
+  .row{display:flex;justify-content:space-between;padding:9px 16px;font-weight:700;font-size:14px;border-bottom:2px solid #000;background:#fff;color:#0A0A0A}
+  .row:last-child{border-bottom:0}
+  .row.lose{color:#888;background:#eee;text-decoration:line-through}
+  .row.win{background:#0A0A0A;color:#fff}
+  .row.win em{color:#E10600;font-style:normal;font-weight:900}
+  footer{padding:18px 26px 24px;display:flex;gap:14px}
+  button{flex:1;font-family:"Archivo Black";font-size:16px;padding:14px;border:4px solid #000;cursor:pointer;letter-spacing:.05em}
+  .b-red{background:#E10600;color:#fff;box-shadow:5px 5px 0 #000}
+  .b-ghost{background:#fff;color:#000}
+  .caption{text-align:center;color:#666;font-size:12px;margin-top:18px;letter-spacing:.08em}
+</style>
+</head>
+<body>
+<div class="halftone"></div>
+<div>
+<div class="card">
+  <header><h1>MINORITY <span>RULE</span></h1><div class="round">ROUND 3 / 5</div></header>
+  <div class="sub"><b>VOTE</b> Minority wins. Tie = void. 4 YES vs 6 NO → YES takes the pot.</div>
+  <div class="votes">
+    <div class="vote yes"><h2>YES</h2><p>4 VOTES — MINORITY</p></div>
+    <div class="vote no-winner"><div class="tag">WINNER</div><h2>NO</h2><p style="color:#E10600">6 VOTES — MAJORITY PAYS</p></div>
+  </div>
+  <div class="board">
+    <div class="row win"><span>YOU — voted NO</span><em>+400</em></div>
+    <div class="row"><span>BOT 04 — voted NO</span><span>+400</span></div>
+    <div class="row lose"><span>BOT 02 — voted YES</span><span>-300</span></div>
+  </div>
+  <footer><button class="b-red">NEXT ROUND</button><button class="b-ghost">RESULTS</button></footer>
+</div>
+<p class="caption">STYLE SAMPLE — B/W paper + #E10600 red / Archivo Black / hard shadows / halftone</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "minority-rule-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch ./dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node ./dist/server.js",
+    "test": "vitest run",
+    "test:e2e": "tsc -p tsconfig.build.json && node ./test/e2e.mjs"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "socket.io-client": "^4.8.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
