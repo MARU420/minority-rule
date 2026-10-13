@@ -17,6 +17,12 @@ services:
         generateValue: true
       - key: ALLOWED_ORIGINS
         value: https://minority-client.onrender.com
+      - key: TRUST_PROXY
+        value: 1
+      - key: MAX_CONNS
+        value: 500
+      - key: MAX_ROOMS
+        value: 200
       - key: DATABASE_PATH
         # NOTE: ephemeral on free tier (wiped on restart).
         # Attach a paid disk at /data for persistence, or use Oracle VPS.

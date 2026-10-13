@@ -22,6 +22,9 @@ const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: { origin: ORIGINS, methods: ["GET", "POST"] },
   maxHttpBufferSize: 1e5,
+  pingInterval: 25_000,
+  pingTimeout: 20_000,
+  connectTimeout: 10_000,
   connectionStateRecovery: { maxDisconnectionDuration: 0 },
 });
 const engine = new Engine(store, { toRoom: (code, event, payload) => io.to(code).emit(event, payload) });
@@ -41,7 +44,22 @@ const rlQuestion = new RateLimiter(3, 60_000);
 const rlChat = new RateLimiter(100, 60_000);
 const rlSession = new RateLimiter(10, 60_000);
 const rlAuth = new RateLimiter(5, 60_000);
+const rlRoomIp = new RateLimiter(10, 3_600_000); // 10 rooms/hour per IP
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN ?? "";
+const TRUST_PROXY = process.env.TRUST_PROXY === "1";
+const MAX_CONNS = Number(process.env.MAX_CONNS ?? 500);
+const MAX_ROOMS = Number(process.env.MAX_ROOMS ?? 200);
+
+/** Real client IP behind Render/Cloudflare (first XFF entry only when trusted). */
+function clientIp(socket: Socket): string {
+  if (TRUST_PROXY) {
+    const cf = socket.handshake.headers["cf-connecting-ip"];
+    if (typeof cf === "string" && cf) return cf.split(",")[0].trim();
+    const xff = socket.handshake.headers["x-forwarded-for"];
+    if (typeof xff === "string" && xff) return xff.split(",")[0].trim();
+  }
+  return socket.handshake.address;
+}
 const ipConns = new Map<string, number>();
 
 function sessionOf(socket: Socket): string | null {
@@ -57,7 +75,12 @@ function requireSession(socket: Socket): string {
 }
 
 io.on("connection", (socket: Socket) => {
-  const ip = socket.handshake.address;
+  if (io.engine.clientsCount > MAX_CONNS) {
+    socket.emit("SAFE_ERROR", { event: "connect", message: "server-full" });
+    socket.disconnect(true);
+    return;
+  }
+  const ip = clientIp(socket);
   const n = (ipConns.get(ip) ?? 0) + 1;
   ipConns.set(ip, n);
   if (n > 5) {
@@ -73,7 +96,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("ISSUE_SESSION", (raw: unknown) => {
     try {
-      if (!rlSession.take(ip)) return safeError(socket, "ISSUE_SESSION", "rate-limited");
+      if (!rlSession.take(clientIp(socket))) return safeError(socket, "ISSUE_SESSION", "rate-limited");
       const { displayName } = z.object({ displayName: NameSchema }).parse(raw);
       const id = newId("s");
       const token = newToken();
@@ -111,7 +134,9 @@ io.on("connection", (socket: Socket) => {
   socket.on("CREATE_ROOM", (raw: unknown) => {
     try {
       const sid = requireSession(socket);
-      if (!rlCreate.take(sid)) return safeError(socket, "CREATE_ROOM", "rate-limited");
+      if (!rlCreate.take(sid) || !rlRoomIp.take(clientIp(socket))) return safeError(socket, "CREATE_ROOM", "rate-limited");
+      const live = (store.db.prepare("SELECT COUNT(*) AS c FROM rooms WHERE state NOT IN ('MATCH_COMPLETED','MATCH_CANCELLED')").get() as { c: number }).c;
+      if (live >= MAX_ROOMS) return safeError(socket, "CREATE_ROOM", "server-full");
       const { displayName, settings } = z.object({ displayName: NameSchema, settings: z.record(z.unknown()).optional() }).parse(raw);
       const code = engine.createRoom(sid, displayName, settings ?? {});
       void socket.join(code);
@@ -259,7 +284,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("REGISTER", (raw: unknown) => {
     try {
-      const ip = socket.handshake.address;
+      const ip = clientIp(socket);
       if (!rlAuth.take(ip)) return safeError(socket, "REGISTER", "rate-limited");
       const { name, password } = z.object({ name: NameSchema, password: z.string().min(8).max(128) }).parse(raw);
       const { userId } = registerUser(store, name, password);
@@ -273,7 +298,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("LOGIN", (raw: unknown) => {
     try {
-      const ip = socket.handshake.address;
+      const ip = clientIp(socket);
       if (!rlAuth.take(ip)) return safeError(socket, "LOGIN", "rate-limited");
       const { name, password } = z.object({ name: z.string().min(1).max(24), password: z.string().min(1).max(128) }).parse(raw);
       const { userId, displayName } = loginUser(store, name, password);
@@ -297,7 +322,7 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("DELETE_ACCOUNT", (raw: unknown) => {
     try {
-      const ip = socket.handshake.address;
+      const ip = clientIp(socket);
       if (!rlAuth.take(ip)) return safeError(socket, "DELETE_ACCOUNT", "rate-limited");
       const sid = requireSession(socket);
       const u = userOfSession(store, sid);
@@ -320,7 +345,7 @@ io.on("connection", (socket: Socket) => {
     try {
       const { token } = z.object({ token: z.string().min(8).max(256) }).parse(raw);
       if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
-        store.secEvent("admin-auth-fail", socket.handshake.address);
+        store.secEvent("admin-auth-fail", clientIp(socket));
         return safeError(socket, "ADMIN_AUTH", "bad-credentials");
       }
       socket.data.admin = true;

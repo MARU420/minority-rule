@@ -87,3 +87,18 @@ server URL must be `https://`/`wss://` in production — both routes above suppo
 - Accounts: `REGISTER` / `LOGIN` (scrypt-hashed passwords, 5/min/IP limit),
   `MY_PROFILE` returns persistent stats (matches, wins, minority wins, net chips,
   best rank). Guests play fully but accrue no stats.
+
+## Abuse & DDoS posture
+
+In-app (this repo): per-socket + per-IP rate limits (rooms 10/hr/IP, votes 5/10s,
+auth 5/min/IP, chat 100/min), 5 conns/IP, 500 global conns with clean shed
+(`server-full`), 200 live rooms cap, 100KB message cap, ping/connect timeouts,
+correct client IP behind proxies (`TRUST_PROXY=1` + Cloudflare headers).
+
+Volumetric attacks need the edge, not app code. Recommended free setup:
+1. Add your domain (or the onrender host) to a free Cloudflare plan (proxy ON).
+2. Cloudflare absorbs L3/L4/L7 floods + free WAF/rate-rules; keep ours as
+   defense-in-depth. Socket.IO heartbeats (25s) fit Cloudflare's 100s idle timeout.
+3. On Render free tier, one instance can still be saturated by a big pipe —
+   Oracle VPS + Cloudflare is the sturdier free combo. Never promise players
+   immunity to collusion or large botnets; we detect and shed, not prevent.
