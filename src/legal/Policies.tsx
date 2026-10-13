@@ -9,7 +9,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
       <div className={S}><div className={H}>1 · WHAT WE COLLECT</div>
         <ul className="mt-1 list-disc pl-5 font-medium">
           <li><b>Guest play:</b> random session token + display name. No email, no password.</li>
-          <li><b>Accounts (optional):</b> display name + salted/scrypted password hash + match stats (matches, wins, chips).</li>
+          <li><b>Accounts (optional):</b> display name, optional email (for future recovery), salted/scrypted password hash + match stats.</li>
           <li><b>Match data:</b> submitted questions, votes, chat messages, reports you file.</li>
           <li><b>On your device only:</b> sound setting, consent choice, optional match history.</li>
           <li><b>Never:</b> ads, analytics, trackers, third-party cookies, location, payments.</li>
@@ -28,7 +28,7 @@ export function Privacy({ onBack }: { onBack: () => void }) {
         <p className="font-medium">Not directed at under-13s. Under 13 needs a parent. Under-16 needs parental consent in the EU/UK.</p>
       </div>
       <div className={S}><div className={H}>6 · SECURITY</div>
-        <p className="font-medium">Passwords are salted + scrypt-hashed (never stored plain). Sessions are unguessable tokens. Traffic is TLS-encrypted in production. No system is perfect — use a unique password.</p>
+        <p className="font-medium">Passwords are salted + scrypt-hashed (never stored plain, min 10 chars with letter + number). Registration asks a small math captcha and is limited to 3 accounts/hour per network; logins slow down after failures. Sessions are unguessable tokens. Traffic is TLS-encrypted in production. No system is perfect — use a unique password.</p>
       </div>
       <div className={S}><div className={H}>7 · CONTACT</div>
         <p className="font-medium">Questions or deletion requests: use the in-game report flow or contact the operator listed on the repository page.</p>

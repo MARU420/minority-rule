@@ -4,7 +4,7 @@ import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { Store, newId, newToken, sha256 } from "./store.js";
 import { Engine, EngineError, sanitizeName } from "./engine.js";
-import { deleteAccount, linkSession, loginUser, profileOf, registerUser, userOfSession, verifyPassword } from "./auth.js";
+import { checkCaptcha, deleteAccount, issueCaptcha, linkSession, loginUser, profileOf, registerUser, userOfSession, verifyPassword } from "./auth.js";
 import { RateLimiter } from "./ratelimit.js";
 import type { Vote } from "./domain/minority.js";
 
@@ -44,6 +44,9 @@ const rlQuestion = new RateLimiter(3, 60_000);
 const rlChat = new RateLimiter(100, 60_000);
 const rlSession = new RateLimiter(10, 60_000);
 const rlAuth = new RateLimiter(5, 60_000);
+const rlRegister = new RateLimiter(3, 3_600_000); // 3 accounts/hour per IP
+const rlCaptcha = new RateLimiter(10, 60_000);
+const loginFails = new Map<string, number>();
 const rlRoomIp = new RateLimiter(10, 3_600_000); // 10 rooms/hour per IP
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN ?? "";
 const TRUST_PROXY = process.env.TRUST_PROXY === "1";
@@ -282,30 +285,63 @@ io.on("connection", (socket: Socket) => {
     return id;
   }
 
+  socket.on("CAPTCHA", () => {
+    try {
+      if (!rlCaptcha.take(clientIp(socket))) return safeError(socket, "CAPTCHA", "rate-limited");
+      socket.emit("CAPTCHA_ISSUED", issueCaptcha());
+    } catch {
+      safeError(socket, "CAPTCHA", "invalid-payload");
+    }
+  });
+
   socket.on("REGISTER", (raw: unknown) => {
     try {
       const ip = clientIp(socket);
-      if (!rlAuth.take(ip)) return safeError(socket, "REGISTER", "rate-limited");
-      const { name, password } = z.object({ name: NameSchema, password: z.string().min(8).max(128) }).parse(raw);
-      const { userId } = registerUser(store, name, password);
+      if (!rlAuth.take(ip) || !rlRegister.take(`reg:${ip}`)) return safeError(socket, "REGISTER", "rate-limited");
+      const { name, password, email, captchaId, captchaAnswer } = z
+        .object({
+          name: NameSchema,
+          password: z.string().min(10).max(128),
+          email: z.string().max(254).optional(),
+          captchaId: z.string().max(128),
+          captchaAnswer: z.string().max(16),
+        })
+        .parse(raw);
+      if (!checkCaptcha(captchaId, captchaAnswer)) return safeError(socket, "REGISTER", "bad-captcha");
+      const { userId } = registerUser(store, name, password, email);
       linkSession(store, sessionOrCreate(socket), userId);
       socket.emit("REGISTERED", { userId });
     } catch (e) {
       const m = e instanceof Error ? e.message : "invalid-payload";
-      safeError(socket, "REGISTER", ["bad-name", "weak-password", "name-taken"].includes(m) ? m : "invalid-payload");
+      safeError(
+        socket,
+        "REGISTER",
+        ["bad-name", "weak-password", "bad-email", "name-taken"].includes(m) ? m : "invalid-payload",
+      );
     }
   });
 
-  socket.on("LOGIN", (raw: unknown) => {
+  socket.on("LOGIN", async (raw: unknown) => {
     try {
       const ip = clientIp(socket);
       if (!rlAuth.take(ip)) return safeError(socket, "LOGIN", "rate-limited");
       const { name, password } = z.object({ name: z.string().min(1).max(24), password: z.string().min(1).max(128) }).parse(raw);
-      const { userId, displayName } = loginUser(store, name, password);
-      linkSession(store, sessionOrCreate(socket), userId);
-      socket.emit("LOGGED_IN", { userId, displayName });
+      const key = `${ip}:${name.trim().toLowerCase()}`;
+      const fails = loginFails.get(key) ?? 0;
+      if (fails > 0) await new Promise((r) => setTimeout(r, Math.min(2 ** Math.min(fails, 5) * 500, 10_000)));
+      try {
+        const { userId, displayName } = loginUser(store, name, password);
+        loginFails.delete(key);
+        linkSession(store, sessionOrCreate(socket), userId);
+        socket.emit("LOGGED_IN", { userId, displayName });
+      } catch {
+        const n = fails + 1;
+        loginFails.set(key, n);
+        if (n === 5) store.secEvent("login-bruteforce", key.slice(0, 80));
+        safeError(socket, "LOGIN", "bad-credentials");
+      }
     } catch {
-      safeError(socket, "LOGIN", "bad-credentials");
+      safeError(socket, "LOGIN", "invalid-payload");
     }
   });
 

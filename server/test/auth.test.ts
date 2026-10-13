@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Store, newId, sha256 } from "../src/store.js";
 import { Engine } from "../src/engine.js";
-import { deleteAccount, hashPassword, linkSession, loginUser, profileOf, registerUser, verifyPassword } from "../src/auth.js";
+import { checkCaptcha, deleteAccount, hashPassword, issueCaptcha, linkSession, loginUser, profileOf, registerUser, verifyPassword } from "../src/auth.js";
 import { seededRng } from "../src/domain/rng.js";
 
 function engineWithUsers() {
@@ -25,10 +25,40 @@ describe("password auth", () => {
     expect(verifyPassword("x", "garbage")).toBe(false);
   });
 
+  it("password policy: 10+ chars with letter + digit", () => {
+    const store = new Store(":memory:");
+    expect(() => registerUser(store, "LongEnough", "alllettershere")).toThrow(/weak-password/);
+    expect(() => registerUser(store, "DigitsOnly", "12345678901")).toThrow(/weak-password/);
+    expect(() => registerUser(store, "Fine1", "pass1234")).toThrow(/weak-password/);
+    expect(() => registerUser(store, "Good2", "pass123456")).not.toThrow();
+  });
+
+  it("email optional, validated, unique", () => {
+    const store = new Store(":memory:");
+    registerUser(store, "Maily", "pass123456", "ME@Example.com");
+    const row = store.db.prepare("SELECT email FROM users WHERE name=?").get("Maily") as { email: string };
+    expect(row.email).toBe("me@example.com");
+    expect(() => registerUser(store, "Other", "pass123456", "not-an-email")).toThrow(/bad-email/);
+    expect(() => registerUser(store, "Dup", "pass123456", "me@example.com")).toThrow(/name-taken/);
+  });
+
+  it("captcha single-use, expiring, answer-checked", () => {
+    const c = issueCaptcha(1000);
+    expect(c.question.length).toBeGreaterThan(3);
+    expect(checkCaptcha("nope", "1", 1000)).toBe(false);
+    // wrong answer consumes it
+    const c2 = issueCaptcha(1000);
+    expect(checkCaptcha(c2.id, "definitely-wrong!!", 1000)).toBe(false);
+    expect(checkCaptcha(c2.id, "0", 1000)).toBe(false); // already consumed
+    // expired
+    const c3 = issueCaptcha(1000);
+    expect(checkCaptcha(c3.id, "0", 1000 + 5 * 60_000 + 1)).toBe(false);
+  });
+
   it("register/login round-trip; names case-insensitive unique", () => {
     const store = new Store(":memory:");
     const { userId } = registerUser(store, "Akiyama", "s3cur3-pass");
-    expect(() => registerUser(store, "akiyama", "another-pass")).toThrow(/name-taken/);
+    expect(() => registerUser(store, "akiyama", "another-pass1")).toThrow(/name-taken/);
     expect(() => registerUser(store, "No", "s3cur3-pass")).toThrow(/bad-name/);
     expect(() => registerUser(store, "Weak", "short")).toThrow(/weak-password/);
     const back = loginUser(store, "AKIYAMA", "s3cur3-pass");

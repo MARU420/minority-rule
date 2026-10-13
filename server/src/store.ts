@@ -77,6 +77,14 @@ export class Store {
         id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE,
         pass_hash TEXT NOT NULL, created_at INTEGER NOT NULL
       );
+    `);
+    try {
+      this.db.exec("ALTER TABLE users ADD COLUMN email TEXT");
+    } catch {
+      /* column already exists on older DBs */
+    }
+    this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL");
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS user_stats(
         user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
         matches INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0,
