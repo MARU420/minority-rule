@@ -14,6 +14,7 @@ import { botVote } from "./game/bots";
 import { QUESTIONS, ambientLine, botReply, type Question } from "./game/talk";
 import { questionForRound, randomBotQuestions, type RoundQuestion } from "./game/questions";
 import { PlayerCard } from "./components/PlayerCard";
+import { sfx, startBgm, stopBgm } from "./fx/sound";
 
 interface ChatMsg {
   from: string;
@@ -47,6 +48,23 @@ export default function App() {
   const roundRef = useRef(1);
   lastMinorityRef.current = lastMinority;
   roundRef.current = round;
+
+  useEffect(() => {
+    startBgm("match");
+    return () => stopBgm();
+  }, []);
+
+  // result sting after reveal
+  useEffect(() => {
+    if (phase !== "reveal" || !result) return;
+    const t = setTimeout(() => {
+      if (result.minority === null) sfx.tick();
+      else if (yourVote && yourVote === result.minority) sfx.win();
+      else sfx.lose();
+    }, 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, result]);
 
   /** Submit phase: everyone pitches a YES/NO question. Host (you) picks one. */
   const startSubmit = useCallback((plist: Player[]) => {
@@ -96,6 +114,8 @@ export default function App() {
   }
 
   function reveal() {
+    if (phase !== "vote" || !yourVote) return;
+    sfx.revealDrum();
     setPlayers((current) => {
       const fixed = current.map((p) => {
         if (p.vote) return p;
@@ -117,6 +137,7 @@ export default function App() {
   }
 
   function pickRandomSub() {
+    sfx.click();
     const pool = subs.length > 0 ? subs : [{ from: "HOUSE", text: questionForRound(roundRef.current).text }];
     const pick = pool[Math.floor(Math.random() * pool.length)];
     startTalk(
@@ -130,11 +151,13 @@ export default function App() {
   function submitQuestion() {
     const text = draft.trim();
     if (!text) return;
+    sfx.click();
     setSubs((s) => [...s, { from: "YOU", text, mine: true }]);
     setDraft("");
   }
 
   function pickSubmission(s: Submission) {
+    sfx.click();
     startTalk(
       players.map((p) => ({ ...p, vote: null })),
       lastMinority,
@@ -145,6 +168,7 @@ export default function App() {
 
   function castVote(vote: Vote) {
     if (phase !== "vote") return;
+    sfx.vote();
     setYourVote(vote);
     setPlayers((prev) => prev.map((p) => (p.isYou ? { ...p, vote } : p)));
   }
@@ -152,6 +176,7 @@ export default function App() {
   function ask() {
     const bot = players.find((p) => p.id === askBot);
     if (!bot || phase !== "talk") return;
+    sfx.click();
     const q = QUESTIONS.find((x) => x.id === askQ)!;
     const intended = intendedRef.current.get(bot.id) ?? "YES";
     setChat((c) => [
@@ -167,6 +192,7 @@ export default function App() {
       return;
     }
     if (phase === "talk") {
+      sfx.round();
       enterVote();
       return;
     }
@@ -193,6 +219,7 @@ export default function App() {
   }
 
   function reset() {
+    sfx.click();
     setRound(1);
     setLastMinority(null);
     lastMinorityRef.current = null;

@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Globe, Bot, BookOpen, Settings2, Trophy, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import Practice from "./Practice";
 import { Lobby } from "./online/Lobby";
 import { Match } from "./online/Match";
 import { AccountPanel } from "./online/Account";
 import { MenuBackdrop } from "./components/MenuBackdrop";
-import { isMuted, setMuted, sfx } from "./fx/sound";
+import { isMuted, setMuted, sfx, startBgm, stopBgm } from "./fx/sound";
 
 export interface PastMatch {
   date: number;
@@ -56,6 +56,11 @@ export default function App() {
   const [muted, setM] = useState(isMuted());
   const [name, setName] = useState(() => localStorage.getItem("minority-name") ?? "");
   const [past] = useState<PastMatch[]>(loadPast);
+
+  useEffect(() => {
+    if (mode === "menu") startBgm("menu");
+    else stopBgm();
+  }, [mode]);
 
   function saveName(v: string) {
     setName(v);

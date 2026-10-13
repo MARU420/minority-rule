@@ -3,7 +3,7 @@ import { Check, Eye, Flag, Send, Volume2, VolumeX, Zap } from "lucide-react";
 import { emit, getSocket } from "../net/server";
 import type { PublicRoom } from "../net/types";
 import { SuitPortrait } from "../components/PlayerCard";
-import { isMuted, setMuted, sfx } from "../fx/sound";
+import { isMuted, setMuted, sfx, startBgm, stopBgm } from "../fx/sound";
 import { ChipGraph, type HistoryPoint } from "./Graph";
 
 interface Me {
@@ -64,8 +64,7 @@ export function Match({ code }: { code: string }) {
   myVoteRef.current = myPick ?? me?.myVote ?? null;
 
   useEffect(() => {
-    const s = getSocket();
-    const onRoom = (r: PublicRoom) => setRoom(r);
+    const s = getSocket();    const onRoom = (r: PublicRoom) => setRoom(r);
     const onState = (p: { room: PublicRoom; me: Me; current: RoundQ | null }) => {
       setRoom(p.room);
       setMe(p.me);
@@ -101,8 +100,7 @@ export function Match({ code }: { code: string }) {
     s.on("SUBMISSION_STATUS_UPDATED", onSub);
     s.on("SAFE_ERROR", onErr);
     s.emit("REQUEST_PUBLIC_MATCH_STATE", { code });
-    return () => {
-      s.off("ROOM_UPDATED", onRoom);
+    return () => {      s.off("ROOM_UPDATED", onRoom);
       s.off("PUBLIC_MATCH_STATE", onState);
       s.off("ROUND_STARTED", onRoundStarted);
       s.off("VOTE_STATUS_UPDATED", onVoteStatus);
@@ -112,6 +110,11 @@ export function Match({ code }: { code: string }) {
       s.off("SAFE_ERROR", onErr);
     };
   }, [code]);
+
+  useEffect(() => {
+    startBgm("match");
+    return () => stopBgm();
+  }, []);
 
   const now = useNow(!!room?.deadlineMs && (room.state === "VOTING_OPEN" || room.state === "QUESTION_SUBMISSION"));
   const secsLeft = room?.deadlineMs ? Math.max(0, Math.ceil((room.deadlineMs - now) / 1000)) : null;

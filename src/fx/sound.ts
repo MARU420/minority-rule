@@ -55,8 +55,7 @@ function tone(freq: number, durMs: number, type: OscillatorType, gain = 0.12, wh
 export const sfx = {
   click() {
     tone(660, 60, "square", 0.1);
-  },
-  vote() {
+  },  vote() {
     tone(220, 120, "sawtooth", 0.14, 0, 440);
   },
   tick() {
@@ -79,3 +78,32 @@ export const sfx = {
     tone(523, 160, "triangle", 0.1, 0.12);
   },
 };
+
+/* ---------- procedural background music (no assets) ---------- */
+let bgmTimer: number | null = null;
+
+// dark pulse: A-minor bass + sparse lead. Menu = slow/sparse, match = driving.
+const BASS = [55, 0, 55, 0, 65.41, 0, 55, 0, 49, 0, 49, 0, 58.27, 0, 73.42, 82.41];
+const LEAD_MENU = [440, 0, 0, 0, 523.25, 0, 0, 0, 392, 0, 0, 0, 329.63, 0, 392, 0];
+const LEAD_MATCH = [440, 0, 523.25, 0, 392, 0, 440, 0, 523.25, 0, 659.25, 0, 587.33, 523.25, 392, 329.63];
+
+export function startBgm(kind: "menu" | "match") {
+  stopBgm();
+  const stepMs = kind === "menu" ? 230 : 170;
+  const lead = kind === "menu" ? LEAD_MENU : LEAD_MATCH;
+  let step = 0;
+  bgmTimer = window.setInterval(() => {
+    if (muted) return;
+    const i = step++ % 16;
+    if (BASS[i]) tone(BASS[i], stepMs * 0.9, "triangle", 0.08);
+    if (lead[i]) tone(lead[i], stepMs * 1.4, "sine", 0.05);
+    if (kind === "match" && step % 4 === 1) tone(110, 50, "square", 0.028);
+  }, stepMs);
+}
+
+export function stopBgm() {
+  if (bgmTimer !== null) {
+    clearInterval(bgmTimer);
+    bgmTimer = null;
+  }
+}
