@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Store, newId, sha256 } from "../src/store.js";
 import { Engine } from "../src/engine.js";
-import { hashPassword, linkSession, loginUser, profileOf, registerUser, verifyPassword } from "../src/auth.js";
+import { deleteAccount, hashPassword, linkSession, loginUser, profileOf, registerUser, verifyPassword } from "../src/auth.js";
 import { seededRng } from "../src/domain/rng.js";
 
 function engineWithUsers() {
@@ -35,6 +35,19 @@ describe("password auth", () => {
     expect(back.userId).toBe(userId);
     expect(() => loginUser(store, "Akiyama", "nope-nope-nope")).toThrow(/bad-credentials/);
     expect(profileOf(store, userId)).toMatchObject({ name: "Akiyama", matches: 0 });
+  });
+
+  it("deleteAccount erases user, stats, and revokes sessions", () => {
+    const store = new Store(":memory:");
+    const { userId } = registerUser(store, "Gone", "delete-me-99");
+    const sid = newId("s");
+    store.db.prepare("INSERT INTO sessions(id,token_hash,display_name,created_at) VALUES(?,?,?,?)").run(sid, sha256("z"), "Gone", Date.now());
+    linkSession(store, sid, userId);
+    deleteAccount(store, userId);
+    expect(profileOf(store, userId)).toBeNull();
+    expect(() => loginUser(store, "Gone", "delete-me-99")).toThrow();
+    const s = store.db.prepare("SELECT revoked FROM sessions WHERE id=?").get(sid) as { revoked: number };
+    expect(s.revoked).toBe(1);
   });
 });
 

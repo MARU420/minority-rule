@@ -83,6 +83,23 @@ export function AccountPanel({ onName }: { onName: (n: string) => void }) {
             ))}
           </div>
           <button onClick={refresh} className="mt-2 w-full border-2 border-neutral-600 p-2 font-display text-xs text-neutral-200">REFRESH</button>
+          <button
+            onClick={async () => {
+              if (!pw) return setError("enter password to confirm deletion");
+              sfx.click();
+              try {
+                await emit("DELETE_ACCOUNT", { password: pw });
+                setProfile(null);
+                setPw("");
+                setError("account deleted");
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+            className="mt-2 w-full border-2 border-[#E10600] p-2 font-display text-xs text-[#E10600]"
+          >
+            DELETE ACCOUNT + DATA
+          </button>
         </div>
       ) : (
         <div className="mt-2">

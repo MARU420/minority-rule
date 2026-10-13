@@ -5,6 +5,8 @@ import { Lobby } from "./online/Lobby";
 import { Match } from "./online/Match";
 import { AccountPanel } from "./online/Account";
 import { MenuBackdrop } from "./components/MenuBackdrop";
+import { CookieBanner } from "./legal/CookieBanner";
+import { Privacy, Terms } from "./legal/Policies";
 import { isMuted, setMuted, sfx, startBgm, stopBgm } from "./fx/sound";
 
 function tap(fn: () => void) {
@@ -55,7 +57,7 @@ function HowTo({ onClose }: { onClose: () => void }) {
 }
 
 export default function App() {
-  const [mode, setMode] = useState<"menu" | "online" | "practice">("menu");
+  const [mode, setMode] = useState<"menu" | "online" | "practice" | "privacy" | "terms">("menu");
   const [code, setCode] = useState("");
   const [playing, setPlaying] = useState(false);
   const [showHow, setShowHow] = useState(false);
@@ -151,16 +153,23 @@ export default function App() {
               </div>
             )}
             <p className="mt-4 text-[11px] tracking-[0.25em] text-neutral-600">TRUST NO ONE · MINORITY TAKES ALL</p>
+            <div className="mt-2 flex justify-center gap-4 text-[11px] font-bold text-neutral-500">
+              <button onClick={tap(() => setMode("privacy"))} className="underline hover:text-white">PRIVACY</button>
+              <button onClick={tap(() => setMode("terms"))} className="underline hover:text-white">TERMS</button>
+            </div>
           </div>
         )}
         {mode === "menu" && showHow && <HowTo onClose={() => setShowHow(false)} />}
+        {mode === "privacy" && <Privacy onBack={() => setMode("menu")} />}
+        {mode === "terms" && <Terms onBack={() => setMode("menu")} />}
         {mode === "online" && !playing && (
           <Lobby initialName={name} onStart={(c) => { setCode(c); setPlaying(true); }} />
         )}
         {mode === "online" && playing && <Match code={code} />}
-        {mode !== "menu" && (
+        {mode !== "menu" && mode !== "privacy" && mode !== "terms" && (
           <button onClick={tap(() => { setMode("menu"); setPlaying(false); setShowHow(false); })} className="mt-4 text-xs tracking-widest text-neutral-500">← MAIN MENU</button>
         )}
+        <CookieBanner onChoice={() => {}} />
       </div>
     </div>
   );

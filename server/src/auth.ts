@@ -60,8 +60,15 @@ export function userOfSession(store: Store, sessionId: string): { userId: string
   return row ?? null;
 }
 
-export function profileOf(store: Store, userId: string) {
-  const u = store.db.prepare("SELECT id, name, created_at FROM users WHERE id=?").get(userId) as
+/** GDPR-style erasure: user row (cascades stats + links), sessions revoked. Match ledgers keep anonymous chip records. */
+export function deleteAccount(store: Store, userId: string) {
+  store.transaction(() => {
+    store.db.prepare("UPDATE sessions SET revoked=1 WHERE id IN (SELECT session_id FROM session_users WHERE user_id=?)").run(userId);
+    store.db.prepare("DELETE FROM users WHERE id=?").run(userId);
+  });
+}
+
+export function profileOf(store: Store, userId: string) {  const u = store.db.prepare("SELECT id, name, created_at FROM users WHERE id=?").get(userId) as
     | { id: string; name: string; created_at: number }
     | undefined;
   const s = store.db.prepare("SELECT * FROM user_stats WHERE user_id=?").get(userId) as Record<string, number> | undefined;

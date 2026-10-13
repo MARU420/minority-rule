@@ -4,7 +4,7 @@ import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { Store, newId, newToken, sha256 } from "./store.js";
 import { Engine, EngineError, sanitizeName } from "./engine.js";
-import { linkSession, loginUser, profileOf, registerUser, userOfSession } from "./auth.js";
+import { deleteAccount, linkSession, loginUser, profileOf, registerUser, userOfSession, verifyPassword } from "./auth.js";
 import { RateLimiter } from "./ratelimit.js";
 import type { Vote } from "./domain/minority.js";
 
@@ -292,6 +292,23 @@ io.on("connection", (socket: Socket) => {
       socket.emit("PROFILE", profileOf(store, u.userId));
     } catch (e) {
       safeError(socket, "MY_PROFILE", errOf(e));
+    }
+  });
+
+  socket.on("DELETE_ACCOUNT", (raw: unknown) => {
+    try {
+      const ip = socket.handshake.address;
+      if (!rlAuth.take(ip)) return safeError(socket, "DELETE_ACCOUNT", "rate-limited");
+      const sid = requireSession(socket);
+      const u = userOfSession(store, sid);
+      if (!u) return safeError(socket, "DELETE_ACCOUNT", "guest");
+      const { password } = z.object({ password: z.string().min(1).max(128) }).parse(raw);
+      const row = store.db.prepare("SELECT pass_hash FROM users WHERE id=?").get(u.userId) as { pass_hash: string };
+      if (!verifyPassword(password, row.pass_hash)) return safeError(socket, "DELETE_ACCOUNT", "bad-credentials");
+      deleteAccount(store, u.userId);
+      socket.emit("ACCOUNT_DELETED", {});
+    } catch {
+      safeError(socket, "DELETE_ACCOUNT", "invalid-payload");
     }
   });
 

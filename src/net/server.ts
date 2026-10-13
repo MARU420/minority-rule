@@ -80,6 +80,8 @@ function eventToAck(event: string): string {
       return "LOGGED_IN";
     case "MY_PROFILE":
       return "PROFILE";
+    case "DELETE_ACCOUNT":
+      return "ACCOUNT_DELETED";
     default:
       return `${event}_ACK`;
   }
