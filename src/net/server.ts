@@ -74,6 +74,12 @@ function eventToAck(event: string): string {
       return "VOTE_ACCEPTED";
     case "REPORT_CONTENT":
       return "REPORT_RECEIVED";
+    case "REGISTER":
+      return "REGISTERED";
+    case "LOGIN":
+      return "LOGGED_IN";
+    case "MY_PROFILE":
+      return "PROFILE";
     default:
       return `${event}_ACK`;
   }

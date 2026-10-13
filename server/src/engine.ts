@@ -245,6 +245,8 @@ export class Engine {
     if (!chk.ok) throw new EngineError(`bad-question:${chk.reason}`);
     const clean = (text as string).normalize("NFKC").replace(/\s+/g, " ").trim();
     const norm = normalizeQuestion(clean);
+    const blocked = this.store.db.prepare("SELECT 1 FROM blocklist WHERE normalized=?").get(norm);
+    if (blocked) throw new EngineError("bad-question:blocked");
     try {
       this.store.transaction(() => {
         const qid = newId("q");
@@ -570,9 +572,55 @@ export class Engine {
       if (r && r.state === "MATCH_RESULTS") {
         this.setState(code, "MATCH_COMPLETED");
         this.store.db.prepare("UPDATE rooms SET completed_at=? WHERE code=?").run(Date.now(), code);
+        this.accumulateStats(code, r.settings.startingBalance);
       }
     });
     this.broadcastRoom(code);
+  }
+
+  /** Persistent per-user stats (humans only, linked sessions). Ties for first all count as wins. */
+  private accumulateStats(code: string, startingBalance: number) {
+    const board = this.leaderboard(code);
+    if (board.length === 0) return;
+    const top = board[0].balance;
+    for (let i = 0; i < board.length; i++) {
+      const row = board[i];
+      const p = this.store.db.prepare("SELECT session_id FROM participants WHERE id=?").get(row.participantId) as {
+        session_id: string | null;
+      };
+      if (!p?.session_id) continue;
+      const link = this.store.db
+        .prepare("SELECT user_id FROM session_users WHERE session_id=?")
+        .get(p.session_id) as { user_id: string } | undefined;
+      if (!link) continue;
+      const rank = i + 1;
+      const won = row.balance === top ? 1 : 0;
+      const net = row.balance - startingBalance;
+      const cur = this.store.db.prepare("SELECT best_rank FROM user_stats WHERE user_id=?").get(link.user_id) as {
+        best_rank: number;
+      };
+      const best = cur.best_rank === 0 ? rank : Math.min(cur.best_rank, rank);
+      this.store.db
+        .prepare(
+          "UPDATE user_stats SET matches=matches+1, wins=wins+?, minority_wins=minority_wins+?, net_chips=net_chips+?, best_rank=?, updated_at=? WHERE user_id=?",
+        )
+        .run(won, row.minorityWins, net, best, Date.now(), link.user_id);
+    }
+  }
+
+  // ---------- moderation (admin token checked by caller) ----------
+  listReports(limit = 50) {
+    return this.store.db.prepare("SELECT * FROM reports ORDER BY id DESC LIMIT ?").all(limit);
+  }
+
+  dismissReport(id: number) {
+    this.store.db.prepare("DELETE FROM reports WHERE id=?").run(id);
+  }
+
+  blockQuestionText(normalized: string, reason: string) {
+    this.store.db
+      .prepare("INSERT INTO blocklist(normalized,reason,ts) VALUES(?,?,?) ON CONFLICT(normalized) DO UPDATE SET reason=excluded.reason")
+      .run(normalized, reason.slice(0, 200), Date.now());
   }
 
   leaderboard(code: string): LeaderboardRow[] {

@@ -82,3 +82,8 @@ server URL must be `https://`/`wss://` in production — both routes above suppo
 - Restart recovery policy: non-terminal matches are cancelled with open stakes
   refunded (see `Engine.recover`); ledger preserves all history.
 - Moderation: `REPORT_CONTENT` stores reports in `reports` table for human review.
+  With `ADMIN_TOKEN` set, use `ADMIN_AUTH` then `ADMIN_REPORTS` / `ADMIN_DISMISS` /
+  `ADMIN_BLOCK` (blocklisted text is rejected at future submissions).
+- Accounts: `REGISTER` / `LOGIN` (scrypt-hashed passwords, 5/min/IP limit),
+  `MY_PROFILE` returns persistent stats (matches, wins, minority wins, net chips,
+  best rank). Guests play fully but accrue no stats.

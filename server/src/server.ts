@@ -4,6 +4,7 @@ import { z } from "zod";
 import { randomBytes } from "node:crypto";
 import { Store, newId, newToken, sha256 } from "./store.js";
 import { Engine, EngineError, sanitizeName } from "./engine.js";
+import { linkSession, loginUser, profileOf, registerUser, userOfSession } from "./auth.js";
 import { RateLimiter } from "./ratelimit.js";
 import type { Vote } from "./domain/minority.js";
 
@@ -39,6 +40,8 @@ const rlVote = new RateLimiter(5, 10_000);
 const rlQuestion = new RateLimiter(3, 60_000);
 const rlChat = new RateLimiter(100, 60_000);
 const rlSession = new RateLimiter(10, 60_000);
+const rlAuth = new RateLimiter(5, 60_000);
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN ?? "";
 const ipConns = new Map<string, number>();
 
 function sessionOf(socket: Socket): string | null {
@@ -239,6 +242,105 @@ io.on("connection", (socket: Socket) => {
       socket.emit("PUBLIC_MATCH_STATE", engine.fullState(code, sessionOf(socket) ?? ""));
     } catch {
       safeError(socket, "REQUEST_PUBLIC_MATCH_STATE", "invalid-payload");
+    }
+  });
+
+  function sessionOrCreate(socket: Socket): string {
+    const existing = sessionOf(socket);
+    if (existing) {
+      const row = store.db.prepare("SELECT id FROM sessions WHERE id=? AND revoked=0").get(existing) as { id: string } | undefined;
+      if (row) return existing;
+    }
+    const id = newId("s");
+    store.db.prepare("INSERT INTO sessions(id,token_hash,display_name,created_at) VALUES(?,?,?,?)").run(id, sha256(newToken()), "Player", Date.now());
+    socket.data.sessionId = id;
+    return id;
+  }
+
+  socket.on("REGISTER", (raw: unknown) => {
+    try {
+      const ip = socket.handshake.address;
+      if (!rlAuth.take(ip)) return safeError(socket, "REGISTER", "rate-limited");
+      const { name, password } = z.object({ name: NameSchema, password: z.string().min(8).max(128) }).parse(raw);
+      const { userId } = registerUser(store, name, password);
+      linkSession(store, sessionOrCreate(socket), userId);
+      socket.emit("REGISTERED", { userId });
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "invalid-payload";
+      safeError(socket, "REGISTER", ["bad-name", "weak-password", "name-taken"].includes(m) ? m : "invalid-payload");
+    }
+  });
+
+  socket.on("LOGIN", (raw: unknown) => {
+    try {
+      const ip = socket.handshake.address;
+      if (!rlAuth.take(ip)) return safeError(socket, "LOGIN", "rate-limited");
+      const { name, password } = z.object({ name: z.string().min(1).max(24), password: z.string().min(1).max(128) }).parse(raw);
+      const { userId, displayName } = loginUser(store, name, password);
+      linkSession(store, sessionOrCreate(socket), userId);
+      socket.emit("LOGGED_IN", { userId, displayName });
+    } catch {
+      safeError(socket, "LOGIN", "bad-credentials");
+    }
+  });
+
+  socket.on("MY_PROFILE", () => {
+    try {
+      const sid = requireSession(socket);
+      const u = userOfSession(store, sid);
+      if (!u) return safeError(socket, "MY_PROFILE", "guest");
+      socket.emit("PROFILE", profileOf(store, u.userId));
+    } catch (e) {
+      safeError(socket, "MY_PROFILE", errOf(e));
+    }
+  });
+
+  function requireAdmin(socket: Socket) {
+    if (!ADMIN_TOKEN || socket.data.admin !== true) throw new EngineError("not-admin");
+  }
+
+  socket.on("ADMIN_AUTH", (raw: unknown) => {
+    try {
+      const { token } = z.object({ token: z.string().min(8).max(256) }).parse(raw);
+      if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
+        store.secEvent("admin-auth-fail", socket.handshake.address);
+        return safeError(socket, "ADMIN_AUTH", "bad-credentials");
+      }
+      socket.data.admin = true;
+      socket.emit("ADMIN_OK", {});
+    } catch {
+      safeError(socket, "ADMIN_AUTH", "invalid-payload");
+    }
+  });
+
+  socket.on("ADMIN_REPORTS", () => {
+    try {
+      requireAdmin(socket);
+      socket.emit("ADMIN_REPORTS", { reports: engine.listReports() });
+    } catch (e) {
+      safeError(socket, "ADMIN_REPORTS", errOf(e));
+    }
+  });
+
+  socket.on("ADMIN_DISMISS", (raw: unknown) => {
+    try {
+      requireAdmin(socket);
+      const { id } = z.object({ id: z.number().int() }).parse(raw);
+      engine.dismissReport(id);
+      socket.emit("ADMIN_DONE", {});
+    } catch (e) {
+      safeError(socket, "ADMIN_DISMISS", errOf(e));
+    }
+  });
+
+  socket.on("ADMIN_BLOCK", (raw: unknown) => {
+    try {
+      requireAdmin(socket);
+      const { text, reason } = z.object({ text: z.string().min(1).max(200), reason: z.string().max(200).default("") }).parse(raw);
+      engine.blockQuestionText(text.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase(), reason);
+      socket.emit("ADMIN_DONE", {});
+    } catch (e) {
+      safeError(socket, "ADMIN_BLOCK", errOf(e));
     }
   });
 });

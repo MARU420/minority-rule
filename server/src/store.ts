@@ -73,6 +73,24 @@ export class Store {
       CREATE TABLE IF NOT EXISTS sec_events(
         id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, kind TEXT NOT NULL, detail TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS users(
+        id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+        pass_hash TEXT NOT NULL, created_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS user_stats(
+        user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        matches INTEGER NOT NULL DEFAULT 0, wins INTEGER NOT NULL DEFAULT 0,
+        minority_wins INTEGER NOT NULL DEFAULT 0, net_chips INTEGER NOT NULL DEFAULT 0,
+        best_rank INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS blocklist(
+        normalized TEXT PRIMARY KEY, reason TEXT NOT NULL DEFAULT '', ts INTEGER NOT NULL
+      );
+      -- link guest sessions to registered users (nullable until login/register)
+      CREATE TABLE IF NOT EXISTS session_users(
+        session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE
+      );
     `);
   }
 

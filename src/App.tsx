@@ -3,6 +3,7 @@ import { Globe, Bot, BookOpen, Settings2, Trophy, ChevronRight, Volume2, VolumeX
 import Practice from "./Practice";
 import { Lobby } from "./online/Lobby";
 import { Match } from "./online/Match";
+import { AccountPanel } from "./online/Account";
 import { MenuBackdrop } from "./components/MenuBackdrop";
 import { isMuted, setMuted } from "./fx/sound";
 
@@ -119,6 +120,7 @@ export default function App() {
                 </button>
               </div>
             )}
+            {showSettings && <AccountPanel onName={(n) => saveName(n)} />}
             {past.length > 0 && (
               <div className="mx-auto mt-3 max-w-2xl border-[3px] border-neutral-600 p-4 text-left">
                 <div className="flex items-center gap-2 font-display text-sm text-neutral-200"><Trophy className="h-4 w-4 text-[#E10600]" /> RECENT MATCHES</div>
