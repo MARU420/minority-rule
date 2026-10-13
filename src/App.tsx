@@ -5,7 +5,7 @@ import { Lobby } from "./online/Lobby";
 import { Match } from "./online/Match";
 import { AccountPanel } from "./online/Account";
 import { MenuBackdrop } from "./components/MenuBackdrop";
-import { isMuted, setMuted } from "./fx/sound";
+import { isMuted, setMuted, sfx } from "./fx/sound";
 
 export interface PastMatch {
   date: number;
@@ -117,6 +117,10 @@ export default function App() {
                 <button onClick={() => { const m = !muted; setM(m); setMuted(m); }}
                   className="mt-3 flex w-full items-center justify-center gap-2 border-[3px] border-white p-2.5 font-display text-sm">
                   {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />} SOUND {muted ? "OFF" : "ON"}
+                </button>
+                <button onClick={() => sfx.win()}
+                  className="mt-2 w-full border-[3px] border-neutral-600 p-2.5 font-display text-xs text-neutral-200">
+                  TEST SOUND
                 </button>
               </div>
             )}

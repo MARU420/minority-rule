@@ -15,10 +15,25 @@ function ac(): AudioContext | null {
   try {
     if (!ctx) ctx = new AudioContext();
     if (ctx.state === "suspended") void ctx.resume();
-    return ctx;
+    return ctx.state === "running" ? ctx : null;
   } catch {
     return null;
   }
+}
+
+/** Browsers suspend AudioContext until a user gesture — unlock on first tap/key. */
+function unlock() {
+  try {
+    if (!ctx) ctx = new AudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+  } catch {
+    /* audio unsupported */
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pointerdown", unlock);
+  window.addEventListener("keydown", unlock);
 }
 
 function tone(freq: number, durMs: number, type: OscillatorType, gain = 0.12, when = 0, slideTo?: number) {
@@ -39,25 +54,25 @@ function tone(freq: number, durMs: number, type: OscillatorType, gain = 0.12, wh
 
 export const sfx = {
   click() {
-    tone(660, 60, "square", 0.06);
+    tone(660, 60, "square", 0.1);
   },
   vote() {
-    tone(220, 120, "sawtooth", 0.1, 0, 440);
+    tone(220, 120, "sawtooth", 0.14, 0, 440);
   },
   tick() {
-    tone(880, 50, "square", 0.05);
+    tone(880, 50, "square", 0.09);
   },
   countdown() {
-    tone(990, 90, "square", 0.08);
+    tone(990, 90, "square", 0.12);
   },
   revealDrum() {
-    for (let i = 0; i < 5; i++) tone(140 + i * 30, 120, "sawtooth", 0.1, i * 0.16);
+    for (let i = 0; i < 5; i++) tone(140 + i * 30, 120, "sawtooth", 0.14, i * 0.16);
   },
   win() {
-    [523, 659, 784, 1046].forEach((f, i) => tone(f, 180, "triangle", 0.12, i * 0.12));
+    [523, 659, 784, 1046].forEach((f, i) => tone(f, 180, "triangle", 0.16, i * 0.12));
   },
   lose() {
-    tone(220, 400, "sawtooth", 0.1, 0, 110);
+    tone(220, 400, "sawtooth", 0.14, 0, 110);
   },
   round() {
     tone(392, 120, "triangle", 0.1);
